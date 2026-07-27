@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Antigravity Quota Tracker</title>
+<style>
+  :root {
+    --bg: #0A0D0B;
+    --panel: #12181A;
+    --panel-border: #232B27;
+    --amber: #F2A93B;
+    --green: #45D19E;
+    --muted: #5C6660;
+    --text: #E9EDEA;
+    --text-dim: #8B958F;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+  }
+  .qt-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+  #app { max-width: 780px; margin: 0 auto; padding: 32px 20px 60px; }
+  button, input { font-family: inherit; }
+  :focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+  .qt-eyebrow { font-family: ui-monospace, monospace; font-size: 11px; letter-spacing: .18em; color: var(--text-dim); margin-bottom: 4px; }
+  .qt-title { font-size: 21px; font-weight: 700; letter-spacing: -.01em; margin-bottom: 20px; }
+
+  .qt-hero { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; }
+  .qt-hero-label { font-family: ui-monospace, monospace; font-size: 11px; letter-spacing: .14em; color: var(--text-dim); margin-bottom: 10px; }
+  .qt-hero-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .qt-chip { font-family: ui-monospace, monospace; font-size: 12.5px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--green); color: var(--green); background: rgba(69,209,158,.08); }
+  .qt-flap-row { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
+  .qt-flap-tile { font-family: ui-monospace, monospace; font-size: 26px; font-weight: 700; color: var(--amber); background: #1A211D; border: 1px solid var(--panel-border); border-radius: 6px; padding: 4px 3px; min-width: 22px; text-align: center; line-height: 1; position: relative; }
+  .qt-flap-tile::after { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: rgba(0,0,0,.4); }
+  .qt-flap-gap { width: 8px; }
+  .qt-hero-sub { font-size: 13px; color: var(--text-dim); }
+  .qt-hero-then { margin-top: 10px; font-size: 12px; color: var(--muted); }
+
+  .qt-board { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
+  .qt-empty { font-size: 13px; color: var(--text-dim); border: 1px dashed var(--panel-border); border-radius: 10px; padding: 20px; text-align: center; }
+  .qt-row { display: grid; grid-template-columns: 110px 1fr; gap: 12px; align-items: start; background: var(--panel); border: 1px solid var(--panel-border); border-radius: 10px; padding: 12px; }
+  .qt-row-label { display: flex; align-items: center; justify-content: space-between; font-weight: 600; font-size: 13px; padding-top: 6px; word-break: break-word; }
+  .qt-cells { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .qt-cell { background: #171E1B; border: 1px solid var(--panel-border); border-radius: 8px; padding: 8px 10px; }
+  .qt-cell-ready { border-color: rgba(69,209,158,.35); }
+  .qt-cell-exhausted { border-color: rgba(242,169,59,.35); }
+  .qt-cell-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .qt-cell-label { font-size: 11.5px; color: var(--text-dim); }
+  .qt-icon-btn { background: transparent; border: none; color: var(--text-dim); cursor: pointer; padding: 2px; border-radius: 4px; display: flex; font-size: 12px; }
+  .qt-icon-btn:hover { color: var(--text); background: rgba(255,255,255,.06); }
+  .qt-status { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; }
+  .qt-status-ready { color: var(--green); }
+  .qt-status-exhausted { color: var(--amber); }
+  .qt-status-unknown { color: var(--muted); font-weight: 500; }
+  .qt-remaining { display: flex; align-items: center; gap: 5px; margin-top: 6px; font-size: 11.5px; color: var(--text-dim); }
+  .qt-remaining input { width: 40px; background: var(--bg); border: 1px solid var(--panel-border); border-radius: 4px; color: var(--text); padding: 2px 4px; font-size: 11.5px; }
+  .qt-editor { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--panel-border); }
+  .qt-editor-hint { font-size: 10.5px; color: var(--muted); margin-bottom: 6px; }
+  .qt-editor-row { display: flex; align-items: center; gap: 5px; font-size: 12px; margin-bottom: 8px; color: var(--text-dim); }
+  .qt-num-sm { width: 44px; background: var(--bg); border: 1px solid var(--panel-border); border-radius: 4px; color: var(--text); padding: 3px 5px; font-size: 12px; }
+  .qt-editor-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .qt-btn { font-size: 11.5px; font-weight: 600; border-radius: 6px; padding: 5px 8px; border: 1px solid transparent; cursor: pointer; }
+  .qt-btn-amber { background: rgba(242,169,59,.12); color: var(--amber); border-color: rgba(242,169,59,.35); }
+  .qt-btn-amber:hover { background: rgba(242,169,59,.2); }
+  .qt-btn-green { background: rgba(69,209,158,.12); color: var(--green); border-color: rgba(69,209,158,.35); }
+  .qt-btn-green:hover { background: rgba(69,209,158,.2); }
+
+  .qt-add { display: flex; gap: 8px; }
+  .qt-add input { flex: 1; background: var(--panel); border: 1px solid var(--panel-border); border-radius: 8px; color: var(--text); padding: 9px 12px; font-size: 13px; }
+  .qt-add input::placeholder { color: var(--muted); }
+  .qt-add button { display: flex; align-items: center; gap: 6px; background: var(--amber); color: #1A1200; font-weight: 700; font-size: 13px; border: none; border-radius: 8px; padding: 9px 14px; cursor: pointer; }
+  .qt-add button:hover { opacity: .9; }
+  .qt-add button:disabled { opacity: .5; cursor: default; }
+
+  .qt-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; font-size: 11px; color: var(--muted); gap: 10px; flex-wrap: wrap; }
+  .qt-clear-btn { background: transparent; border: none; color: var(--muted); cursor: pointer; font-size: 11px; text-decoration: underline; }
+  .qt-clear-btn:hover { color: var(--text-dim); }
+  .qt-error { margin-top: 10px; font-size: 12px; color: var(--amber); }
+  .qt-loading { font-size: 13px; color: var(--text-dim); text-align: center; padding: 40px 0; }
+
+  @media (max-width: 480px) {
+    .qt-row { grid-template-columns: 1fr; }
+    .qt-cells { grid-template-columns: 1fr; }
+    .qt-flap-tile { font-size: 20px; }
+  }
+</style>
+</head>
+<body>
+<div id="app"><div class="qt-loading">Loading your tracked accounts…</div></div>
+
+<!-- Firebase (compat SDK, no build step needed) -->
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script>
+  var firebaseConfig = {
+    apiKey: "AIzaSyA3GIq3HOF351BF1ivqsruyf9bt8eSioE8",
+    authDomain: "antigravity-tracker-c119c.firebaseapp.com",
+    projectId: "antigravity-tracker-c119c",
+    storageBucket: "antigravity-tracker-c119c.firebasestorage.app",
+    messagingSenderId: "78078713102",
+    appId: "1:78078713102:web:64ae7e088229ab49ae0b5f"
+  };
+  firebase.initializeApp(firebaseConfig);
+  var db = firebase.firestore();
+  // Everything lives in one document, so all your devices/browsers share it.
+  var docRef = db.collection('antigravity-tracker').doc('data');
+</script>
+<script>
+(function(){
+  var GROUPS = [ {key:'gemini', label:'Gemini models'}, {key:'claude', label:'Claude / GPT-OSS'} ];
+
+  var state = { accounts: [], editing: null, editDraft: {days:'', hours:''}, newLabel: '', error: null, saving: false, ready: false };
+
+  function freshGroup(){ return { status:'unchecked', refreshAt:null, remaining:100 }; }
+  function freshAccount(label){
+    return { id: 'acc_'+Date.now()+'_'+Math.random().toString(36).slice(2,7), label: label, gemini: freshGroup(), claude: freshGroup() };
+  }
+
+  // ---- Persistent storage (Firebase Firestore — independent of any Claude account) ----
+  async function load(){
+    try {
+      var snap = await docRef.get();
+      if (snap.exists && snap.data() && snap.data().accounts) {
+        state.accounts = JSON.parse(snap.data().accounts);
+      } else {
+        state.accounts = [];
+      }
+      state.error = null;
+    } catch(e) {
+      state.accounts = [];
+      state.error = 'Could not load from Firestore. Check your firebaseConfig and security rules (see setup steps).';
+    }
+    state.ready = true;
+    // Keep this browser in sync if the doc changes elsewhere (e.g. another device).
+    docRef.onSnapshot(function(snap){
+      if (snap.exists && snap.data() && snap.data().accounts) {
+        var incoming = JSON.parse(snap.data().accounts);
+        if (JSON.stringify(incoming) !== JSON.stringify(state.accounts)) {
+          state.accounts = incoming;
+          render();
+        }
+      }
+    });
+  }
+  async function save(){
+    state.saving = true;
+    try {
+      await docRef.set({ accounts: JSON.stringify(state.accounts), updatedAt: Date.now() });
+      state.error = null;
+    } catch(e) {
+      state.error = 'Could not save to Firestore — check your connection and security rules.';
+    }
+    state.saving = false;
+    render();
+  }
+
+  function reconcile(now){
+    var changed = false;
+    state.accounts.forEach(function(acc){
+      GROUPS.forEach(function(g){
+        var group = acc[g.key];
+        if (group.status === 'exhausted' && group.refreshAt && group.refreshAt <= now) {
+          acc[g.key] = { status:'ready', refreshAt:null, remaining:100 };
+          changed = true;
+        }
+      });
+    });
+    return changed;
+  }
+
+  function formatCountdown(ms){
+    if (ms <= 0) return '0m';
+    var totalMin = Math.floor(ms/60000);
+    var d = Math.floor(totalMin/1440);
+    var h = Math.floor((totalMin%1440)/60);
+    var m = totalMin%60;
+    if (d>0) return d+'d '+String(h).padStart(2,'0')+'h '+String(m).padStart(2,'0')+'m';
+    if (h>0) return h+'h '+String(m).padStart(2,'0')+'m';
+    return m+'m';
+  }
+
+  function accountSortKey(acc, now){
+    var readyAny = false, soonest = Infinity;
+    GROUPS.forEach(function(g){
+      var group = acc[g.key];
+      if (group.status==='ready') readyAny = true;
+      else if (group.status==='exhausted') soonest = Math.min(soonest, group.refreshAt);
+    });
+    if (readyAny) return -1;
+    return soonest;
+  }
+
+  function esc(str){
+    return String(str).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  function flapHTML(text){
+    var out = '';
+    for (var i=0;i<text.length;i++){
+      var ch = text[i];
+      out += ch===' ' ? '<span class="qt-flap-gap"></span>' : '<span class="qt-flap-tile">'+esc(ch)+'</span>';
+    }
+    return out;
+  }
+
+  function cellHTML(acc, groupKey, label, now){
+    var g = acc[groupKey];
+    var cellId = acc.id+'-'+groupKey;
+    var isEditing = state.editing === cellId;
+    var html = '<div class="qt-cell qt-cell-'+g.status+'">';
+    html += '<div class="qt-cell-head"><span class="qt-cell-label">'+esc(label)+'</span>';
+    html += '<button class="qt-icon-btn" data-action="toggle-editor" data-account="'+acc.id+'" data-group="'+groupKey+'" aria-label="Edit '+esc(label)+'">&#9998;</button></div>';
+
+    if (g.status==='exhausted'){
+      html += '<div class="qt-status qt-status-exhausted">&#9201; <span class="qt-mono qt-countdown" data-refresh-at="'+g.refreshAt+'">'+formatCountdown(g.refreshAt-now)+'</span></div>';
+    } else if (g.status==='ready'){
+      html += '<div class="qt-status qt-status-ready">&#10003; Ready</div>';
+    } else {
+      html += '<div class="qt-status qt-status-unknown">Not set</div>';
+    }
+
+    if (g.status==='ready'){
+      html += '<div class="qt-remaining"><input type="number" min="0" max="100" value="'+g.remaining+'" class="qt-remaining-input" data-account="'+acc.id+'" data-group="'+groupKey+'" aria-label="Remaining percent"> <span>% left</span></div>';
+    }
+
+    if (isEditing){
+      html += '<div class="qt-editor">';
+      html += '<div class="qt-editor-hint">Enter what Antigravity\'s quota screen shows, e.g. "2d 1h".</div>';
+      html += '<div class="qt-editor-row">';
+      html += '<input type="number" min="0" class="qt-num-sm qt-draft-days" data-account="'+acc.id+'" data-group="'+groupKey+'" placeholder="0" value="'+esc(state.editDraft.days)+'" aria-label="Days"> <span>d</span>';
+      html += '<input type="number" min="0" max="23" class="qt-num-sm qt-draft-hours" data-account="'+acc.id+'" data-group="'+groupKey+'" placeholder="0" value="'+esc(state.editDraft.hours)+'" aria-label="Hours"> <span>h</span>';
+      html += '</div>';
+      html += '<div class="qt-editor-actions">';
+      html += '<button class="qt-btn qt-btn-amber" data-action="set-exhausted" data-account="'+acc.id+'" data-group="'+groupKey+'">Set exhausted</button>';
+      html += '<button class="qt-btn qt-btn-green" data-action="set-ready" data-account="'+acc.id+'" data-group="'+groupKey+'">Mark ready now</button>';
+      html += '</div></div>';
+    }
+
+    html += '</div>';
+    return html;
+  }
+
+  function render(){
+    if (!state.ready){
+      document.getElementById('app').innerHTML = '<div class="qt-loading">Loading your tracked accounts…</div>';
+      return;
+    }
+
+    var now = Date.now();
+    var readyNow = [], upcoming = [];
+    state.accounts.forEach(function(acc){
+      GROUPS.forEach(function(g){
+        var group = acc[g.key];
+        if (group.status==='ready') readyNow.push({acc:acc.label, group:g.label});
+        else if (group.status==='exhausted') upcoming.push({acc:acc.label, group:g.label, refreshAt:group.refreshAt});
+      });
+    });
+    upcoming.sort(function(a,b){ return a.refreshAt-b.refreshAt; });
+    var nextUp = upcoming[0];
+    var thenUp = upcoming.slice(1,3);
+
+    var sorted = state.accounts.slice().sort(function(a,b){ return accountSortKey(a,now)-accountSortKey(b,now); });
+
+    var html = '';
+    html += '<div class="qt-eyebrow">QUOTA ROTATION</div>';
+    html += '<div class="qt-title">Antigravity Multi-Account Tracker</div>';
+
+    html += '<div class="qt-hero">';
+    if (readyNow.length>0){
+      html += '<div class="qt-hero-label">READY NOW &middot; '+readyNow.length+'</div>';
+      html += '<div class="qt-hero-chips">';
+      readyNow.forEach(function(r){ html += '<span class="qt-chip">'+esc(r.acc)+' &middot; '+esc(r.group)+'</span>'; });
+      html += '</div>';
+    } else if (nextUp){
+      html += '<div class="qt-hero-label">NEXT REFRESH</div>';
+      html += '<div class="qt-flap-row" id="hero-flap" data-refresh-at="'+nextUp.refreshAt+'">'+flapHTML(formatCountdown(nextUp.refreshAt-now))+'</div>';
+      html += '<div class="qt-hero-sub">'+esc(nextUp.acc)+' &middot; '+esc(nextUp.group)+'</div>';
+      if (thenUp.length>0){
+        html += '<div class="qt-hero-then">then: ';
+        html += thenUp.map(function(t){
+          return '<span class="qt-then-item" data-refresh-at="'+t.refreshAt+'" data-label="'+esc(t.acc)+' &middot; '+esc(t.group)+'">'+esc(t.acc)+' &middot; '+esc(t.group)+' in '+formatCountdown(t.refreshAt-now)+'</span>';
+        }).join('  &middot;  ');
+        html += '</div>';
+      }
+    } else {
+      html += '<div class="qt-hero-label">NO ACCOUNTS TRACKED YET &mdash; ADD ONE BELOW</div>';
+    }
+    html += '</div>';
+
+    html += '<div class="qt-board">';
+    if (state.accounts.length===0){
+      html += '<div class="qt-empty">Add each Gmail account you rotate through, then log a group as exhausted when Antigravity tells you.</div>';
+    }
+    sorted.forEach(function(acc){
+      html += '<div class="qt-row">';
+      html += '<div class="qt-row-label"><span>'+esc(acc.label)+'</span>';
+      html += '<button class="qt-icon-btn" data-action="remove-account" data-account="'+acc.id+'" aria-label="Remove '+esc(acc.label)+'">&#128465;</button></div>';
+      html += '<div class="qt-cells">';
+      GROUPS.forEach(function(g){ html += cellHTML(acc, g.key, g.label, now); });
+      html += '</div></div>';
+    });
+    html += '</div>';
+
+    html += '<div class="qt-add">';
+    html += '<input id="new-label-input" placeholder="Account label, e.g. gmail-3" value="'+esc(state.newLabel||'')+'">';
+    html += '<button data-action="add-account"'+(state.saving?' disabled':'')+'>+ Add account</button>';
+    html += '</div>';
+
+    html += '<div class="qt-footer">';
+    html += '<span>Manual log &mdash; Antigravity has no public quota API, so update a cell after you check the app. '+(state.saving ? 'Saving…' : 'Synced via Firestore — same data on every device.')+'</span>';
+    if (state.accounts.length>0){
+      html += '<button class="qt-clear-btn" data-action="clear-all">Clear all</button>';
+    }
+    html += '</div>';
+
+    if (state.error){ html += '<div class="qt-error">'+esc(state.error)+'</div>'; }
+
+    document.getElementById('app').innerHTML = html;
+  }
+
+  function updateCountdowns(){
+    var now = Date.now();
+    document.querySelectorAll('.qt-countdown[data-refresh-at]').forEach(function(el){
+      el.textContent = formatCountdown(Number(el.getAttribute('data-refresh-at'))-now);
+    });
+    var heroFlap = document.getElementById('hero-flap');
+    if (heroFlap){
+      heroFlap.innerHTML = flapHTML(formatCountdown(Number(heroFlap.getAttribute('data-refresh-at'))-now));
+    }
+    document.querySelectorAll('.qt-then-item[data-refresh-at]').forEach(function(el){
+      var refreshAt = Number(el.getAttribute('data-refresh-at'));
+      var label = el.getAttribute('data-label');
+      el.textContent = label+' in '+formatCountdown(refreshAt-now);
+    });
+  }
+
+  function addAccount(){
+    var input = document.getElementById('new-label-input');
+    var label = input ? input.value.trim() : '';
+    if (!label) return;
+    state.accounts.push(freshAccount(label));
+    state.newLabel = '';
+    save();
+  }
+  function removeAccount(id){
+    state.accounts = state.accounts.filter(function(a){ return a.id!==id; });
+    save();
+  }
+  function setExhausted(accId, groupKey){
+    var d = Number(state.editDraft.days)||0;
+    var h = Number(state.editDraft.hours)||0;
+    var ms = (d*24*60 + h*60)*60000;
+    if (ms<=0) return;
+    var acc = state.accounts.filter(function(a){ return a.id===accId; })[0];
+    if (!acc) return;
+    acc[groupKey] = { status:'exhausted', refreshAt: Date.now()+ms, remaining:0 };
+    state.editing = null;
+    state.editDraft = {days:'', hours:''};
+    save();
+  }
+  function setReady(accId, groupKey){
+    var acc = state.accounts.filter(function(a){ return a.id===accId; })[0];
+    if (!acc) return;
+    acc[groupKey] = { status:'ready', refreshAt:null, remaining:100 };
+    state.editing = null;
+    save();
+  }
+  function setRemaining(accId, groupKey, val){
+    var acc = state.accounts.filter(function(a){ return a.id===accId; })[0];
+    if (!acc) return;
+    var num = Math.max(0, Math.min(100, Number(val)||0));
+    acc[groupKey].remaining = num;
+    save();
+  }
+  function clearAll(){
+    if (window.confirm('Clear every tracked account? This cannot be undone.')){
+      state.accounts = [];
+      save();
+    }
+  }
+
+  document.getElementById('app').addEventListener('click', function(e){
+    var el = e.target.closest('[data-action]');
+    if (!el) return;
+    var action = el.getAttribute('data-action');
+    var accId = el.getAttribute('data-account');
+    var groupKey = el.getAttribute('data-group');
+    if (action==='add-account') addAccount();
+    else if (action==='remove-account') removeAccount(accId);
+    else if (action==='toggle-editor'){
+      var cellId = accId+'-'+groupKey;
+      state.editing = (state.editing===cellId) ? null : cellId;
+      state.editDraft = {days:'', hours:''};
+      render();
+    }
+    else if (action==='set-exhausted') setExhausted(accId, groupKey);
+    else if (action==='set-ready') setReady(accId, groupKey);
+    else if (action==='clear-all') clearAll();
+  });
+
+  document.getElementById('app').addEventListener('input', function(e){
+    var t = e.target;
+    if (t.id==='new-label-input'){ state.newLabel = t.value; }
+    else if (t.classList.contains('qt-draft-days')){ state.editDraft.days = t.value; }
+    else if (t.classList.contains('qt-draft-hours')){ state.editDraft.hours = t.value; }
+    else if (t.classList.contains('qt-remaining-input')){
+      setRemaining(t.getAttribute('data-account'), t.getAttribute('data-group'), t.value);
+    }
+  });
+
+  document.getElementById('app').addEventListener('keydown', function(e){
+    if (e.target && e.target.id==='new-label-input' && e.key==='Enter') addAccount();
+  });
+
+  (async function init(){
+    await load();
+    render();
+    setInterval(async function(){
+      var changed = reconcile(Date.now());
+      if (changed){ await save(); }
+      else { updateCountdowns(); }
+    }, 1000);
+  })();
+})();
+</script>
+</body>
+</html>
