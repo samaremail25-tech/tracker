@@ -110,6 +110,8 @@
   .qt-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
   .qt-field label { font-size: 10px; letter-spacing: .06em; color: var(--muted); text-transform: uppercase; }
   .qt-field input { width: 100%; background: var(--bg); border: 1px solid var(--panel-border); border-radius: 6px; color: var(--text); padding: 6px 7px; font-size: 12px; font-family: var(--font-mono); }
+  .qt-field input::placeholder { color: var(--muted); opacity: 0.6; }
+  .qt-field input:focus { border-color: var(--blue); outline: none; box-shadow: 0 0 0 2px rgba(88,166,255,.15); }
   .qt-editor-warn { font-size: 10.5px; color: var(--amber); margin-bottom: 8px; }
   .qt-editor-actions { display: flex; gap: 6px; flex-wrap: wrap; }
   .qt-btn { font-size: 11.5px; font-weight: 700; border-radius: 7px; padding: 6px 10px; border: 1px solid transparent; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
@@ -329,10 +331,10 @@
       var draftDate = state.editDraft.date, draftTime = state.editDraft.time;
       var previewEpoch = pktInputToEpoch(draftDate, draftTime);
       html += '<div class="qt-editor">';
-      html += '<div class="qt-editor-hint">Enter the date &amp; time Antigravity shows you, e.g. "30/07/2026, 12:05:53" — all times here are Pakistan Standard Time (UTC+5).</div>';
+      html += '<div class="qt-editor-hint">Enter the date &amp; time Antigravity shows you in 24-hour format, e.g. "30/07/2026, 12:05:53" becomes date: 2026-07-30 and time: 12:05:53. System will display it as 12:05 PM PKT.</div>';
       html += '<div class="qt-editor-row">';
       html += '<div class="qt-field"><label>Date</label><input type="date" class="qt-draft-date" data-account="'+acc.id+'" data-group="'+groupKey+'" value="'+esc(draftDate)+'" aria-label="Refresh date"></div>';
-      html += '<div class="qt-field"><label>Time</label><input type="time" step="1" class="qt-draft-time" data-account="'+acc.id+'" data-group="'+groupKey+'" value="'+esc(draftTime)+'" aria-label="Refresh time"></div>';
+      html += '<div class="qt-field"><label>Time (24h)</label><input type="text" pattern="[0-9]{2}:[0-9]{2}(:[0-9]{2})?" placeholder="HH:MM:SS" class="qt-draft-time" data-account="'+acc.id+'" data-group="'+groupKey+'" value="'+esc(draftTime)+'" aria-label="Refresh time (24-hour format)"></div>';
       html += '</div>';
       if (previewEpoch !== null && previewEpoch <= now){
         html += '<div class="qt-editor-warn">That time has already passed — pick a moment in the future.</div>';
@@ -452,7 +454,7 @@
       html += '<button class="qt-clear-btn" data-action="clear-all">Clear all</button>';
     }
     html += '</div>';
-    html += '<div class="qt-version">v2.0 • 12h format • duplicate check</div>';
+    html += '<div class="qt-version">v2.1 • 24h input, 12h display • duplicate check</div>';
 
     if (state.error){ html += '<div class="qt-error">'+esc(state.error)+'</div>'; }
 
@@ -572,11 +574,44 @@
     var t = e.target;
     if (t.id==='new-label-input'){ state.newLabel = t.value; }
     else if (t.classList.contains('qt-draft-date')){ state.editDraft.date = t.value; }
-    else if (t.classList.contains('qt-draft-time')){ state.editDraft.time = t.value; }
+    else if (t.classList.contains('qt-draft-time')){ 
+      // Allow typing, just store the value
+      state.editDraft.time = t.value; 
+    }
     else if (t.classList.contains('qt-remaining-input')){
       setRemaining(t.getAttribute('data-account'), t.getAttribute('data-group'), t.value);
     }
   });
+
+  // Validate and format time when user leaves the time field
+  document.getElementById('app').addEventListener('blur', function(e){
+    var t = e.target;
+    if (t.classList.contains('qt-draft-time') && t.value){
+      // Try to parse and normalize the time
+      var timeStr = t.value.trim();
+      // If user enters incomplete time like "23:05", add seconds
+      if (/^\d{1,2}:\d{1,2}$/.test(timeStr)){
+        var parts = timeStr.split(':');
+        var hh = parseInt(parts[0]);
+        var mm = parseInt(parts[1]);
+        if (hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59){
+          t.value = pad(hh)+':'+pad(mm)+':00';
+          state.editDraft.time = t.value;
+        }
+      }
+      // If user enters full time like "23:05:30"
+      else if (/^\d{1,2}:\d{1,2}:\d{1,2}$/.test(timeStr)){
+        var parts = timeStr.split(':');
+        var hh = parseInt(parts[0]);
+        var mm = parseInt(parts[1]);
+        var ss = parseInt(parts[2]);
+        if (hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59 && ss >= 0 && ss <= 59){
+          t.value = pad(hh)+':'+pad(mm)+':'+pad(ss);
+          state.editDraft.time = t.value;
+        }
+      }
+    }
+  }, true);
 
   document.getElementById('app').addEventListener('keydown', function(e){
     if (e.target && e.target.id==='new-label-input' && e.key==='Enter') addAccount();
