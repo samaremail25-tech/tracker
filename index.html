@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Antigravity Quota Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -53,7 +56,7 @@
 
   .qt-clock { text-align: right; flex-shrink: 0; }
   .qt-clock-label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .18em; color: var(--muted); margin-bottom: 7px; }
-  .qt-clock-tiles { display: flex; gap: 3px; justify-content: flex-end; }
+  .qt-clock-tiles { display: flex; gap: 3px; justify-content: flex-end; align-items: center; }
   .qt-clock-tile { font-family: var(--font-mono); font-size: 17px; font-weight: 700; color: var(--text); background: linear-gradient(180deg, #1C2724, var(--panel-2)); border: 1px solid var(--panel-border); border-radius: 6px; padding: 5px 6px; min-width: 18px; text-align: center; line-height: 1; }
   .qt-clock-colon { font-family: var(--font-mono); font-size: 17px; font-weight: 700; color: var(--muted); align-self: center; }
   .qt-clock-date { margin-top: 7px; font-size: 12.5px; color: var(--text-dim); }
@@ -123,9 +126,10 @@
   .qt-add button:disabled { opacity: .5; cursor: default; }
 
   .qt-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; font-size: 11px; color: var(--muted); gap: 10px; flex-wrap: wrap; line-height: 1.5; }
+  .qt-version { font-family: var(--font-mono); font-size: 9px; color: var(--muted); opacity: .5; }
   .qt-clear-btn { background: transparent; border: none; color: var(--muted); cursor: pointer; font-size: 11px; text-decoration: underline; flex-shrink: 0; }
   .qt-clear-btn:hover { color: var(--text-dim); }
-  .qt-error { margin-top: 10px; font-size: 12px; color: var(--amber); }
+  .qt-error { margin-top: 10px; font-size: 14px; color: var(--amber); background: var(--amber-dim); border: 1px solid rgba(255,166,87,.35); border-radius: 8px; padding: 12px 14px; font-weight: 600; }
   .qt-loading { font-size: 13px; color: var(--text-dim); text-align: center; padding: 40px 0; }
 
   @media (max-width: 480px) {
@@ -448,6 +452,7 @@
       html += '<button class="qt-clear-btn" data-action="clear-all">Clear all</button>';
     }
     html += '</div>';
+    html += '<div class="qt-version">v2.0 • 12h format • duplicate check</div>';
 
     if (state.error){ html += '<div class="qt-error">'+esc(state.error)+'</div>'; }
 
@@ -486,8 +491,10 @@
     if (exists){
       state.error = 'Account "'+label+'" already exists. Please use a different label.';
       render();
+      setTimeout(function(){ state.error = null; render(); }, 3000);
       return;
     }
+    state.error = null;
     state.accounts.push(freshAccount(label));
     state.newLabel = '';
     save();
