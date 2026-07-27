@@ -578,24 +578,6 @@
     }
   });
 
-  // Auto-convert 24h to 12h format when user leaves time field
-  document.getElementById('app').addEventListener('blur', function(e){
-    var t = e.target;
-    if (t.classList.contains('qt-draft-time') && t.value){
-      var parts = t.value.split(':');
-      if (parts.length >= 2){
-        var hh = parseInt(parts[0]);
-        var mm = parts[1];
-        var ss = parts[2] || '00';
-        if (hh >= 12){
-          var hh12 = hh === 12 ? 12 : hh - 12;
-          t.value = pad(hh12)+':'+mm+':'+ss;
-          state.editDraft.time = t.value;
-        }
-      }
-    }
-  }, true);
-
   document.getElementById('app').addEventListener('keydown', function(e){
     if (e.target && e.target.id==='new-label-input' && e.key==='Enter') addAccount();
   });
